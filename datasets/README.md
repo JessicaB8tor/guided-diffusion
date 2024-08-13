@@ -5,7 +5,7 @@ This directory includes instructions and scripts for downloading ImageNet and LS
 ## Class-conditional ImageNet
 
 
-# Jessica Note
+### Jessica Note
 
 The below link from the original repo does not work anymore to make it work with the ILSVRC2012 dataset I created a "imagenet" directory within the root directory of the repository and within this directory I used wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --no-check-certificate and https://github.com/0429charlie/ImageNet_metadata/raw/master/ILSVRC2012_devkit_t12.tar.gz to get the ILSVRC2012_img_val.tar and ILSVRC2012_devkit_t12.tar.gz files. With these two files in the imagenet directory I can then use the dataset. 
 
