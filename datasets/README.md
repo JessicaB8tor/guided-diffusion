@@ -4,6 +4,13 @@ This directory includes instructions and scripts for downloading ImageNet and LS
 
 ## Class-conditional ImageNet
 
+
+### Jessica Note
+
+The below link from the original repo does not work anymore to make it work with the ILSVRC2012 dataset I created a "imagenet" directory within the root directory of the repository and within this directory I used wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --no-check-certificate and https://github.com/0429charlie/ImageNet_metadata/raw/master/ILSVRC2012_devkit_t12.tar.gz to get the ILSVRC2012_img_val.tar and ILSVRC2012_devkit_t12.tar.gz files. With these two files in the imagenet directory I can then use the dataset. 
+
+#
+
 For our class-conditional models, we use the official ILSVRC2012 dataset with manual center cropping and downsampling. To obtain this dataset, navigate to [this page on image-net.org](http://www.image-net.org/challenges/LSVRC/2012/downloads) and sign in (or create an account if you do not already have one). Then click on the link reading "Training images (Task 1 & 2)". This is a 138GB tar file containing 1000 sub-tar files, one per class.
 
 Once the file is downloaded, extract it and look inside. You should see 1000 `.tar` files. You need to extract each of these, which may be impractical to do by hand on your operating system. To automate the process on a Unix-based system, you can `cd` into the directory and run this short shell script:
