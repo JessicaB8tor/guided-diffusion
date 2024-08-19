@@ -80,7 +80,7 @@ def main():
     upscale = transforms.Resize(256)
     downscale = transforms.Resize(224)
 
-    val_dataset = datasets.ImageNet(root='./imagenet', split='val', transform=transform)
+    val_dataset = datasets.ImageNet(root=args.dataset, split='val', transform=transform)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     clf = models.vit_b_16(weights = models.ViT_B_16_Weights.DEFAULT).to(sg_util.dev())
@@ -167,7 +167,7 @@ def scale_diffusion_to_imagenet(
 def create_argparser():
     defaults = dict(
         clip_denoised = False,
-        guide_scales = "0.4,0.8",
+        guide_scales = "1.0,2.0",
         guide_profile = "constant",
         use_fp16 = False,
         log_dir = "logs",
@@ -177,6 +177,7 @@ def create_argparser():
 
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
+    parser.add_argument('--dataset')
     return parser
 
 if __name__ == '__main__':

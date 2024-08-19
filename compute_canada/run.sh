@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --mem=64G
+#SBATCH --mem=128G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
-#SBATCH --time=1:0:0
-#SBATCH --mail-user=romain.guth@polytechnique.edu
+#SBATCH --time=12:0:0
+#SBATCH --mail-user=jkbator@student.ubc.ca
 #SBATCH --mail-type=ALL
 #SBATCH --gpus=1
 
@@ -27,6 +27,8 @@ fi
 
 job_name=$1
 
+cp -r ../imagenet $SLURM_TMPDIR
+
 # Check the entered job name and run the corresponding script
 cd ./jobs
 case $job_name in
@@ -35,6 +37,9 @@ case $job_name in
         ;;
     classifier_eval)
         ./classifier_eval.sh
+        ;;
+    dp_sample)
+        ./dp_sample.sh
         ;;
     *)
         echo "Error: Invalid job name."
