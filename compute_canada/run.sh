@@ -2,12 +2,12 @@
 #SBATCH --mem=128G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
-#SBATCH --time=12:0:0
+#SBATCH --time=8:0:0
 #SBATCH --mail-user=jkbator@student.ubc.ca
 #SBATCH --mail-type=ALL
 #SBATCH --gpus=1
 
-module purge
+module --force purge
 module load StdEnv/2020 gcc/11.3.0 cuda/11.8.0 python/3.8.2
 
 # Create virtual environment
@@ -37,6 +37,12 @@ case $job_name in
         ;;
     classifier_eval)
         ./classifier_eval.sh
+        ;;
+    image_sample)
+        ./image_sample.sh
+        ;;
+    classifier_sample)
+        ./classifier_sample.sh
         ;;
     dp_sample)
         ./dp_sample.sh

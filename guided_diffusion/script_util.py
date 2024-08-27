@@ -40,6 +40,19 @@ def classifier_defaults():
         classifier_pool="attention",
     )
 
+def unconditional_256_classifier_defaults():
+    """
+    Defaults for the unconditional 256x256 classifier as provided in original README
+    """
+
+    return dict(
+        image_size=256,
+        classifier_use_fp16=True,
+        classifier_attention_resolutions="32,16,8",
+        classifier_use_scale_shift_norm=True,
+        classifier_resblock_updown=True
+    )
+
 
 def target_model_defaults():
     """

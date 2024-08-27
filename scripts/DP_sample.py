@@ -17,6 +17,7 @@ from guided_diffusion.script_util import (
     NUM_CLASSES,
     model_and_diffusion_defaults,
     classifier_defaults,
+    unconditional_256_classifier_defaults,
     create_model_and_diffusion,
     create_classifier,
     add_dict_to_argparser,
@@ -38,27 +39,18 @@ def load_images(path : str) -> th.FloatTensor:
     return ref_images
 
 
-def round_to_nearest_i_times_10x(scale):
+def round_to_one_decimal(scale):
     if scale == 0:
         return 0, 0
     
     exponent = int(np.floor(np.log10(scale)))
     coefficient = scale / (10 ** exponent)
     # print("coefficient:", coefficient)
-    rounded_coefficient = round(coefficient)
+    rounded_coefficient = round(coefficient, 1)
     # print("rounded_coefficient:", rounded_coefficient)
     return rounded_coefficient, exponent
 
-
-def get_finename(scale, iteration, prefix=""):
-    if scale == 0:
-        return f"{prefix}_iter={iteration}_s=0.pdf"
-    # map tensor to float
-    scale = scale.item()
-    rounded_coefficient, exponent = round_to_nearest_i_times_10x(scale)
-    return f"{prefix}_iter={iteration}_s={rounded_coefficient}e{exponent}.pdf" 
-
-def save_images(results, num_rows, num_cols, filename, plot_dir):
+def save_images(results, ref_images, num_rows, num_cols, filename, plot_dir):
     """
     Saves a batch of images and their corresponding samples to the specified directory.
     
@@ -74,24 +66,28 @@ def save_images(results, num_rows, num_cols, filename, plot_dir):
     os.makedirs(plot_dir, exist_ok=True)
     
     # Plot and save images
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(15, 15))
+    fig, axs = plt.subplots(num_rows + 1, num_cols, figsize=(20, 20))
     keys = list(results.keys()) 
-    for i in range(num_rows):
-        data = results[keys[i]]
+    for i in range(num_rows + 1):
+        if i == 0:
+            data = ref_images
+        else:
+            data = results[keys[i - 1]]
+
         data = ((data + 1) * 127.5).clamp(0, 255).to(th.uint8)
         data = data.permute(0, 2, 3, 1).contiguous().cpu().numpy()
         for j in range(num_cols):
             axs[i, j].imshow(data[j])
             axs[i, j].axis('off')
-    
-    
      
-    for row in range(num_rows):
-        if keys[row] == "x":
+    for row in range(num_rows + 1):
+        if row == 0:
+            axs[row, 0].text(-40, 128, 'Original Images', rotation=90, fontsize=16, va='center')
+        elif keys[row - 1] == "x":
             axs[row, 0].text(-40, 128, 'data', rotation=90, fontsize=16, va='center')
         else:
-            scale = keys[row].item()
-            c, e = round_to_nearest_i_times_10x(scale) 
+            scale = keys[row - 1].item()
+            c, e = round_to_one_decimal(scale) 
             axs[row, 0].text(-20, 128, f's={c}e{e}', rotation=90, fontsize=16, va='center') 
     
     plt.savefig(os.path.join(plot_dir, filename))
@@ -140,7 +136,7 @@ def main():
     guide_scales = th.tensor([float(x) for x in guide_scales.split(",")]) if guide_scales else th.tensor([0.0])
     diffusion.guide_schedule = th.ones((1000,)).to(sg_util.dev())
     
-    results = {}    
+    results = {}
     for i in range(args.num_iters):
         model_kwargs = {}
 
@@ -162,10 +158,11 @@ def main():
             results[scale] = sample
 
         save_images(results=results,
-                num_rows=len(guide_scales),
-                num_cols=ref_images.size(0),
-                filename=get_finename(0, i, "data"),
-                plot_dir= plot_dir)
+                    ref_images=ref_images,
+                    num_rows=len(guide_scales),
+                    num_cols=ref_images.size(0),
+                    filename=f"{datetime.datetime.now().strftime('DP_Sampling-%Y-%m-%d-%H-%M-%S-%f')}.pdf",
+                    plot_dir= plot_dir)
     logger.log("sampling complete")
 
 
@@ -180,7 +177,7 @@ def create_argparser():
         guide_scales="",
     )
     defaults.update(model_and_diffusion_defaults())
-    defaults.update(classifier_defaults())
+    defaults.update(unconditional_256_classifier_defaults())
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
     return parser

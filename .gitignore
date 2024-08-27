@@ -13,5 +13,5 @@ checkpoints/*
 guided_diffusion.egg-info/PKG-INFO
 compute_canada/gdg/*
 imagenet/*
-reference_images/*
 compute_canada/slurm-*
+ref_images/*

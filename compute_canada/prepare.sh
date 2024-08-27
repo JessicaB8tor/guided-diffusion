@@ -8,5 +8,6 @@ pip install matplotlib --no-index
 pip install imageio --no-index
 pip install matplotlib --no-index
 pip install scipy --no-index
+pip install blobfile --no-index
 pip install -e . --no-index
 cd -

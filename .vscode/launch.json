@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": "Unconditional Sampling",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/scripts/classifier_sample.py",
       "console": "integratedTerminal",
@@ -33,10 +33,40 @@
         "--classifier_path", "models/256x256_classifier.pt",
         "--model_path", "models/256x256_diffusion_uncond.pt"
       ]
-    }, 
+    },
+    {
+      "name": "DP Sampling",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/DP_sample.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "CONDA_ENV_PATH": "${env:CONDA_PREFIX}"
+      },
+      "envFile": "${workspaceFolder}/.env",
+      "args": [
+       "--timestep_respacing", "250",
+        "--attention_resolutions", "32,16,8",
+        "--class_cond", "False",
+        "--diffusion_steps", "1000",
+        "--image_size", "256",
+        "--learn_sigma", "True",
+        "--noise_schedule", "linear",
+        "--num_channels", "256",
+        "--num_head_channels", "64",
+        "--num_res_blocks", "2",
+        "--resblock_updown", "True",
+        "--use_fp16", "True",
+        "--use_scale_shift_norm", "True",
+        "--model_path", "models/256x256_diffusion_uncond.pt",
+        "--image_path", "ref_images",
+        "--guide_scales", "2.0, 3.0"
+        ]
+    },
     {
       "name": "Class Conditonal Sampling (Classifier)",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/scripts/classifier_sample.py",
       "console": "integratedTerminal",
@@ -106,7 +136,7 @@
     },
     {
       "name": "Target Model Training",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/scripts/target_train.py",
       "console": "integratedTerminal",
