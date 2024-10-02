@@ -111,8 +111,8 @@ def main():
         for scale in scales:
             logger.log(f"Measuring performance at scale {scale}...")
             model_kwargs = {"s" : scale}
+            correct = 0
             for images, labels in eval_set:
-                correct = 0
                 img = upscale(images)
                 img = img.to(sg_util.dev())
                 
@@ -166,10 +166,10 @@ def scale_diffusion_to_imagenet(
 
 def create_argparser():
     defaults = dict(
-        clip_denoised = False,
-        guide_scales = "1.0,2.0",
+        clip_denoised = True,
+        guide_scales = "2.0, 3.0",
         guide_profile = "constant",
-        use_fp16 = False,
+        use_fp16 = True,
         log_dir = "logs",
         batch_size = 32,
         batch_number = 10

@@ -8,3 +8,6 @@ source gdg/bin/activate
 
 # Prepare the environment 
 ./prepare.sh
+
+mkdir -p /tmp/data
+cp -r ../imagenet /tmp/data
