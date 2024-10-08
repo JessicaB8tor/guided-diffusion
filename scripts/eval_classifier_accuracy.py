@@ -17,6 +17,7 @@ from guided_diffusion.script_util import (
 
 def main():
     args = create_argparser().parse_args()
+    logger.log(f'args: {args}')
 
     if args.log_dir: 
         log_dir_root = args.log_dir
@@ -25,7 +26,7 @@ def main():
      
     log_dir = os.path.join(
             log_dir_root,
-            datetime.datetime.now().strftime("gdg-%Y-%m-%d-%H-%M-%S-%f"),
+            datetime.datetime.now().strftime("classifier_eval-%Y-%m-%d-%H-%M-%S-%f"),
         ) 
     os.makedirs(log_dir, exist_ok=True) 
     logger.configure(dir=log_dir)
@@ -116,10 +117,10 @@ def main():
                 img = upscale(images)
                 img = img.to(sg_util.dev())
                 
-                diff_img = scale_imagenet_to_diffusion(img)
+                # diff_img = scale_imagenet_to_diffusion(img)
 
                 def cond_fn(x, t, y=None, s=1.0):
-                    return (diff_img - x) * s     
+                    return (img - x) * s     
                            
                 samples, _ = diffusion.p_sample_loop(
                     model_fn,
@@ -130,7 +131,8 @@ def main():
                     device=sg_util.dev(),                
                 )
                 
-                img = scale_diffusion_to_imagenet(downscale(samples))
+                # img = scale_diffusion_to_imagenet(downscale(samples))
+                img = downscale(samples)
                 outputs = clf(img).to('cpu')
                 _, predicted = th.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
@@ -167,7 +169,7 @@ def scale_diffusion_to_imagenet(
 def create_argparser():
     defaults = dict(
         clip_denoised = True,
-        guide_scales = "2.0, 3.0",
+        guide_scales = "0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0",
         guide_profile = "constant",
         use_fp16 = True,
         log_dir = "logs",

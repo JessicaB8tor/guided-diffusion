@@ -104,7 +104,7 @@ def main():
      
     log_dir = os.path.join(
             log_dir_root,
-            datetime.datetime.now().strftime("gdg-%Y-%m-%d-%H-%M-%S-%f"),
+            datetime.datetime.now().strftime("DP_Sampling-%Y-%m-%d-%H-%M-%S-%f"),
         ) 
     os.makedirs(log_dir, exist_ok=True) 
     logger.configure(dir=log_dir)

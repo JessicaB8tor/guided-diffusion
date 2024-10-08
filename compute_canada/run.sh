@@ -2,7 +2,7 @@
 #SBATCH --mem=128G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
-#SBATCH --time=8:0:0
+#SBATCH --time=12:0:0
 #SBATCH --mail-user=jkbator@student.ubc.ca
 #SBATCH --mail-type=ALL
 #SBATCH --gpus=1
