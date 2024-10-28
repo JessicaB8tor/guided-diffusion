@@ -6,14 +6,70 @@ import torch as th
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
+import matplotlib.pyplot as plt
+import numpy as np
 from torch.utils.data import DataLoader
 from guided_diffusion import sg_util, logger
-from copy import deepcopy
 from guided_diffusion.script_util import (
     NUM_CLASSES,
     create_model_and_diffusion,
     add_dict_to_argparser,
 )
+
+def round_to_one_decimal(scale):
+    if scale == 0:
+        return 0, 0
+    
+    exponent = int(np.floor(np.log10(scale)))
+    coefficient = scale / (10 ** exponent)
+    # print("coefficient:", coefficient)
+    rounded_coefficient = round(coefficient, 1)
+    # print("rounded_coefficient:", rounded_coefficient)
+    return rounded_coefficient, exponent
+
+def save_images(results, ref_images, num_rows, num_cols, filename, plot_dir):
+    """
+    Saves a batch of images and their corresponding samples to the specified directory.
+    
+    Args:
+    results (dict): Dictionary containing the original images and their corresponding samples.
+    num_rows (int): Number of rows in the plot.
+    num_cols (int): Number of columns in the plot.
+    filename (str): Filename for the saved plot.
+    plot_dir (str): Directory to save the plots.    
+
+    """
+
+    os.makedirs(plot_dir, exist_ok=True)
+    
+    # Plot and save images
+    fig, axs = plt.subplots(num_rows + 1, num_cols, figsize=(20, 20))
+    keys = list(results.keys()) 
+    for i in range(num_rows + 1):
+        if i == 0:
+            data = ref_images
+        else:
+            data = results[keys[i - 1]]
+
+        data = ((data + 1) * 127.5).clamp(0, 255).to(th.uint8)
+        data = data.permute(0, 2, 3, 1).contiguous().cpu().numpy()
+        for j in range(num_cols):
+            axs[i, j].imshow(data[j])
+            axs[i, j].axis('off')
+     
+    for row in range(num_rows + 1):
+        if row == 0:
+            axs[row, 0].text(-40, 128, 'Original Images', rotation=90, fontsize=16, va='center')
+        elif keys[row - 1] == "x":
+            axs[row, 0].text(-40, 128, 'data', rotation=90, fontsize=16, va='center')
+        else:
+            scale = keys[row - 1].item()
+            c, e = round_to_one_decimal(scale) 
+            axs[row, 0].text(-20, 128, f's={c}e{e}', rotation=90, fontsize=16, va='center') 
+    
+    plt.savefig(os.path.join(plot_dir, filename))
+    plt.close(fig)
+
 
 def main():
     args = create_argparser().parse_args()
@@ -22,7 +78,7 @@ def main():
     if args.log_dir: 
         log_dir_root = args.log_dir
     else: 
-        log_dir_root = "logs";
+        log_dir_root = "logs"
      
     log_dir = os.path.join(
             log_dir_root,
@@ -70,16 +126,14 @@ def main():
 
     def model_fn(x, t, y=None, s=None):
         return model(x, t, s=s)
-    
+
+
     transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor()
     ])
 
-    upscale = transforms.Resize(256)
-    downscale = transforms.Resize(224)
+    vit_transforms = models.ViT_B_16_Weights.DEFAULT.transforms()
 
     val_dataset = datasets.ImageNet(root=args.dataset, split='val', transform=transform)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
@@ -87,15 +141,15 @@ def main():
     clf = models.vit_b_16(weights = models.ViT_B_16_Weights.DEFAULT).to(sg_util.dev())
     clf.eval()
 
-    base_correct = 0
-    total = 0
-
     eval_set = [i for i in val_loader][:args.batch_number]
 
     with th.no_grad():
         logger.log("Measuring base performance...")
+        base_correct = 0
+        total = 0
         for images, labels in eval_set:
             img = images.to(sg_util.dev())
+            img = vit_transforms(img)
             outputs = clf(img).to('cpu')
             _, predicted = th.max(outputs.data, 1)
             total += labels.size(0)
@@ -108,17 +162,18 @@ def main():
         accuracy = 100 * base_correct / total
         logger.log(f'Accuracy of the network on the ImageNet validation images: {accuracy:.2f}%')
         
+       # results = {}
         scales = [float(i) for i in args.guide_scales.split(",")]
         for scale in scales:
             logger.log(f"Measuring performance at scale {scale}...")
             model_kwargs = {"s" : scale}
             correct = 0
+            total = 0
             for images, labels in eval_set:
-                img = upscale(images)
-                img = img.to(sg_util.dev())
+                img = images.to(sg_util.dev())
+                upscale = transforms.Resize(256)
+                img = upscale(img)
                 
-                # diff_img = scale_imagenet_to_diffusion(img)
-
                 def cond_fn(x, t, y=None, s=1.0):
                     return (img - x) * s     
                            
@@ -130,11 +185,21 @@ def main():
                     cond_fn=cond_fn,
                     device=sg_util.dev(),                
                 )
+
+                # results[scale] = samples
+
+                # save_images(results=results,num_rows=len(scales),num_cols=args.batch_size,
+                # filename=f"{datetime.datetime.now().strftime('Eval_Classifier_Sampling-%Y-%m-%d-%H-%M-%S-%f')}.pdf",plot_dir= args.log_dir)
                 
-                # img = scale_diffusion_to_imagenet(downscale(samples))
-                img = downscale(samples)
+                downscale = transforms.Resize(224)
+                samples = downscale(samples)
+
+                logger.log(f"After diffusion before vit_transforms min: {th.min(samples)}, max: {th.max(samples)}")
+               
+                img = vit_transforms(samples)
                 outputs = clf(img).to('cpu')
                 _, predicted = th.max(outputs.data, 1)
+                total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
                 del samples, _, img, outputs, predicted
@@ -144,32 +209,10 @@ def main():
             accuracy = 100 * correct / total
             logger.log(f'Accuracy of the network after {scale} strength guiding: {accuracy:.2f}%')
 
-def scale_imagenet_to_diffusion(
-        img : th.FloatTensor, 
-        mean = [0.485, 0.456, 0.406],
-        std = [0.229, 0.224, 0.225]):
-    
-    result = deepcopy(img)
-    result[:, 0] = result[:, 0] * std[0] + mean[0]
-    result[:, 1] = result[:, 1] * std[1] + mean[1]
-    result[:, 2] = result[:, 2] * std[2] + mean[2]
-    return 2 * result - 1
-
-def scale_diffusion_to_imagenet(
-        img : th.FloatTensor, 
-        mean = [0.485, 0.456, 0.406],
-        std = [0.229, 0.224, 0.225]):
-    
-    result = .5 * img + .5
-    result[:, 0] = (result[:, 0] - mean[0])/std[0]
-    result[:, 1] = (result[:, 1] - mean[1])/std[1]
-    result[:, 2] = (result[:, 2] - mean[2])/std[2]
-    return result
-
 def create_argparser():
     defaults = dict(
-        clip_denoised = True,
-        guide_scales = "0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0",
+        clip_denoised = False,
+        guide_scales = "5.0, 6.0, 7.0, 8.0, 9.0, 10.0",
         guide_profile = "constant",
         use_fp16 = True,
         log_dir = "logs",

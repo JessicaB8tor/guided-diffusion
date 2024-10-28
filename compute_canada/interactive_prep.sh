@@ -11,3 +11,5 @@ source gdg/bin/activate
 
 mkdir -p /tmp/data
 cp -r ../imagenet /tmp/data
+
+export CUDA_VISIBLE_DEVICES=0,1,2,3

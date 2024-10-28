@@ -29,6 +29,8 @@ job_name=$1
 
 cp -r ../imagenet $SLURM_TMPDIR
 
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
 # Check the entered job name and run the corresponding script
 cd ./jobs
 case $job_name in
